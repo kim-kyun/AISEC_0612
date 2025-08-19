@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predict Lotto Number Next</title>
+    <style>
+        * {
+            margin: 0.5rem 0;
+            padding: 0
+        }
+
+        body {
+            padding: 2rem;
+            min-width: 50rem;
+        }
+
+        h1 {
+            text-align: center;
+            color: blueviolet;
+            margin: 1rem auto;
+            background: lightgray;
+            padding: 2rem 0;
+            width: 90%;
+        }
+
+        h2 {
+            margin: 1rem 0;
+            text-align: right;
+            margin-right: 5rem;
+            color: darkgray
+        }
+
+        hr {
+            border-width: 0.2rem;
+            box-shadow: 2px 2px 2px gray;
+            width: 90%;
+            margin: auto;
+        }
+
+        .nt {
+            font-size: 1.2rem;
+            width: 8rem;
+            float: left;
+            margin: 0.5rem;
+            text-align: center;
+        }
+
+        .ls {
+            width: 8rem;
+            height: 8rem;
+            border-radius: 50%;
+            background: black;
+            color: white;
+            float: left;
+            margin: 0.5rem;
+            font-size: 5rem;
+            text-align: center;
+            line-height: 8rem;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Predict Lotto Number</h1>
+    <hr>
+    <h2 id="myinfo">author : dmsgur@gmail.com</h2>
+    <div id="detailinfo"
+        style="position:absolute;display:none;padding:0.5rem;right:5rem;width:30rem;height:9rem;background:BlueViolet;color:whitesmoke;border:1px solid orange">
+        저자:홍길동<br>
+        교육:광주컴퓨터기술학원<br>
+        기간:25.6.12 ~ 25.9.4<br>
+        자기소개: AI 와 인공지능의 해킹 방어 연구를 위한 포트폴리오<br>
+    </div>
+    <div style="width:90%;margin:auto">
+        <img src="{{url_for('static',filename='lotto_img.webp')}}" style="margin:0.2rem;width:12.8rem;position: absolute;
+        top:3.3rem" />
+        <div id="main" style="font-size:1.5rem">
+            <label style="display:block;width:40rem">날짜 : <input type="date" id="mdate"
+                    style="font-size:1.5rem;width:30rem" /></label>
+            <label style=" display:block;width:40rem">모델 : <select id="msel" style="font-size:1.5rem;width:30rem">
+                    <option value="LSTM_model_12" selected>LSTM 모델 (타임스텝 12주)</option>
+                    <option value="LSTM_model_48">LSTM 모델 (타임스텝 48주)</option>
+                    <option value="CONV_model_12">ConvLSTM 모델 (타임스텝 12주)</option>
+                    <option value="CONV_model_48">ConvLSTM 모델 (타임스텝 48주)</option>
+                </select></label>
+            <button style="font-size:1.5rem;margin-left:2rem;width:15rem" id="launch_model"> 예측 실행 </button>
+            <button style="font-size:1.5rem;margin-left:2rem;width:15rem" id="clear_model"> 화면 클리어 </button>
+        </div>
+        <div id="container"></div>
+        <hr style="margin-top:19rem;border-width:1px">
+        <p style="text-align: right"> 광주컴퓨터기술학원 인공지능솔루션 적대적공격 위협 분석 AI보안전문가 포트폴리오</p>
+        <p style="text-align: right"> ☎ 교육문의 : 062-413-1600</p>
+    </div>
+    <div id="cover" style="width:100vw;height:100vh;background:yellow;
+        opacity:0.2;display:none;position:fixed;left:0;top:0"></div>
+    <img src="{{url_for('static',filename='loading.gif')}}" id="loading" style="width:10rem;height:10rem; position:fixed;
+        left:calc(50vw - 5rem);top:calc(50vh - 5rem);display:none"/>
+    <script>
+        const colormap = ["gold","gold","gold","gold","gold","gold","gold","gold","gold","gold",
+        "blue","blue","blue","blue","blue","blue","blue","blue","blue","blue",
+        "red","red","red","red","red","red","red","red","red","red",
+        "gray","gray","gray","gray","gray","gray","gray","gray","gray","gray",
+        "darkgreen","darkgreen","darkgreen","darkgreen","darkgreen","darkgreen"]
+        console.log(colormap.length)
+        let container =  document.getElementById("container")
+        let main = document.getElementById("main")
+        let myinfo = document.getElementById("myinfo")
+        let detailinfo = document.getElementById("detailinfo")
+        let launch_model = document.getElementById("launch_model")
+        myinfo.addEventListener("mouseover", function () {
+            detailinfo.style.display = "block"
+        })
+        myinfo.addEventListener("mouseout", function () {
+            detailinfo.style.display = "none"
+        })
+        document.getElementById("clear_model").addEventListener("click",
+        function(){
+            container.innerHTML=""
+        })
+        launch_model.addEventListener("click", async function () {
+            const cover = document.getElementById("cover")
+            const loading =  document.getElementById("loading")
+            cover.style.display="block"
+            loading.style.display="block"
+            let mdate = document.getElementById("mdate").value
+            if (!mdate) {
+                alert("날짜를 선택하세요")
+                return;
+            }
+            let conn = await fetch(`/lotto365/${mdate}
+                                /${document.getElementById("msel").value}`)
+            let result = await conn.json()
+            let inHtml = `
+            <div style="clear:both;border-top:2px solid green">
+            <h3>이번주 로또 예측 번호</h3>
+            <p>모델훈련일자 : <span>${new Date(result.lastfit_date).toLocaleDateString("ko-KR",{ year: 'numeric', month: 'long', day: 'numeric',weekday:'long'})}</span></p>
+            <p>추 &nbsp;첨 &nbsp;일 &nbsp;자 : <span>${new Date(result.pred_date).toLocaleDateString("ko-KR",{ year: 'numeric', month: 'long', day: 'numeric',weekday:'long'})}</span></p>
+            <p>전 체 오 차 율 : <span>${result.err_rat.at(-1)}</span></p>
+            <div style="color:blue;font-size:1.5rem">
+                <p>예측 RNN 딥러닝 모델 [
+                    <span style="color:red;font-weight:bold;">${document.getElementById("msel").value}</span> ]
+                </p>
+                <p> 과거부터 현재까의 모든 로또 번호와 추첨일을 조합한 예측번호</p>
+            </div>
+            <div style="margin:2rem;">
+                <div class="nt">예측번호 1</div>
+                <div class="nt">예측번호 2</div>
+                <div class="nt">예측번호 3</div>
+                <div class="nt">예측번호 4</div>
+                <div class="nt">예측번호 5</div>
+                <div class="nt">예측번호 6</div>
+                <div class="nt">보너스번호</div>
+               `
+            const err_rat = result.err_rat//에러율 all_err  num1_err,num2_err
+            const pred = result.pred//예측번호 7개 num2 num3 ...7
+            for (let i = 0; i < 7; i++) {
+                inHtml+=`
+                <div style="box-shadow:2px 2px 2px gray;background:${colormap[pred[i]+1]};${i==0?'clear:both':''}" class="ls">${pred[i]}</div>
+                `
+            }
+            for (let i = 0; i < 7; i++) {
+                inHtml+=`
+                    <div ${i==0?'style="clear:both"':""} class="nt" >${err_rat[i]}</div>
+                `
+            }
+
+            inHtml+=`
+                </div>
+            </div>
+            `
+            container.innerHTML += inHtml;
+            setTimeout(function(){
+                cover.style.display="none"
+                loading.style.display="none"
+            },500)
+        })
+    </script>
+
+
+
+
+</body>
+
+</html>
